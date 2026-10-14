@@ -18,6 +18,21 @@ No installation or administrator access is required. Keep `Noctra.exe` and the i
 - DirectX 11-compatible graphics hardware and drivers
 - Internet access for optional avatar images and application updates
 
+## Build from source
+
+The complete C++ source, tests, embedded menu assets, and CMake configuration
+are included in this repository. Build with Visual Studio 2022:
+
+```powershell
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+
+The executable is written to `dist\Noctra.exe`. Profiles are saved from the
+**Config** menu, and **Misc > Interface > Dark mode** switches the menu palette.
+The setting is included in saved profiles.
+
 ## Notes
 
 - Profiles are saved from the **Config** menu.

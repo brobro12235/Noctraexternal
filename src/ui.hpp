@@ -20,9 +20,10 @@ struct UiState {
     std::string loaded_profile;
     bool confirm_reset{};
     bool show_roblox_clean_confirm{};
+    bool theme_initialized{},theme_dark_mode{};
 };
 void initialize_menu_fonts(float dpi_scale);
-void apply_theme();
+void apply_theme(bool dark_mode=false);
 void draw_startup(const std::string& message,const std::string& version,bool busy,bool available,bool staged,bool failed,double elapsed);
 void draw_menu(Settings&, const Snapshot&, UiState&, double fps, double uptime);
 void draw_overlay(const Settings&, const Snapshot&, Vec2 viewport, bool active, const std::optional<Target>&);

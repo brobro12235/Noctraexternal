@@ -15,9 +15,9 @@
 // example and its modified ImGui widgets. Uses the project's pinned ImGui/DX11.
 namespace noctra {
 namespace {
-constexpr ImVec4 ink{50.0f/255,50.0f/255,55.0f/255,1};
-constexpr ImVec4 muted{112.0f/255,112.0f/255,123.0f/255,1};
-constexpr ImVec4 faint{146.0f/255,146.0f/255,157.0f/255,1};
+ImVec4 ink{50.0f/255,50.0f/255,55.0f/255,1};
+ImVec4 muted{112.0f/255,112.0f/255,123.0f/255,1};
+ImVec4 faint{146.0f/255,146.0f/255,157.0f/255,1};
 struct Fonts {ImFont* body{};ImFont* small{};ImFont* icons{};};
 // Fonts are owned by each context's atlas. No cross-context font pointers.
 Fonts fonts() {
@@ -28,6 +28,11 @@ Fonts fonts() {
 float scale(){return fonts().body->FontSize*ImGui::GetIO().FontGlobalScale/17.0f;}
 ImVec2 point(Vec2 v){return {v.x,v.y};}
 ImU32 tint(ImVec4 color){color.w*=ImGui::GetStyle().Alpha;return ImGui::ColorConvertFloat4ToU32(color);}
+ImU32 style_tint(ImGuiCol color,float alpha=1.0f) {
+    auto value=ImGui::GetStyle().Colors[color];
+    value.w*=alpha;
+    return tint(value);
+}
 void text_muted(const char* value){ImGui::PushTextWrapPos(0);ImGui::TextColored(muted,"%s",value);ImGui::PopTextWrapPos();}
 void draw_text(ImDrawList* draw,ImVec2 position,ImU32 color,const char* text) {
     draw->AddText(ImGui::GetFont(),ImGui::GetFontSize(),position,color,text);
@@ -54,7 +59,7 @@ void row(const UiState& state,const char* label,bool& value,const char* descript
     float animation=storage->GetFloat(id,value?1.0f:0.0f);
     const float fraction=1-std::exp(-13.2f*ImGui::GetIO().DeltaTime);
     animation+=((value?1.0f:0.0f)-animation)*fraction;storage->SetFloat(id,animation);
-    draw->AddRect({at.x,at.y+5*z},{at.x+17*z,at.y+22*z},tint({206.0f/255,206.0f/255,211.0f/255,1}),2*z);
+    draw->AddRect({at.x,at.y+5*z},{at.x+17*z,at.y+22*z},style_tint(ImGuiCol_Border),2*z);
     draw->AddRectFilled({at.x+3.5f*z,at.y+8.5f*z},{at.x+13.5f*z,at.y+18.5f*z},tint({ink.x,ink.y,ink.z,animation}),2*z);
     const ImVec4 text{faint.x+(ink.x-faint.x)*animation,faint.y+(ink.y-faint.y)*animation,faint.z+(ink.z-faint.z)*animation,1};
     draw_text(draw,{at.x+26*z,at.y+5*z},tint(hovered?ink:text),label);
@@ -98,8 +103,8 @@ bool icon_tab(const char* id,const char* glyph,const char* tooltip,bool selected
     const bool pressed=ImGui::InvisibleButton("tab",{31*z,34*z},ImGuiButtonFlags_EnableNav);const bool hovered=ImGui::IsItemHovered();
     if(hovered){ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);ImGui::SetTooltip("%s",tooltip);}
     auto* draw=ImGui::GetWindowDrawList();
-    draw->AddRectFilled({at.x+3*z,at.y+4*z},{at.x+25*z,at.y+29*z},tint({242.0f/255,242.0f/255,247.0f/255,1}),4*z);
-    draw->AddRect({at.x+3*z,at.y+4*z},{at.x+25*z,at.y+29*z},tint({193.0f/255,193.0f/255,197.0f/255,1}),4*z);
+    draw->AddRectFilled({at.x+3*z,at.y+4*z},{at.x+25*z,at.y+29*z},style_tint(ImGuiCol_Button),4*z);
+    draw->AddRect({at.x+3*z,at.y+4*z},{at.x+25*z,at.y+29*z},style_tint(ImGuiCol_Border),4*z);
     ImGui::PushFont(fonts().icons);
     auto* icon_font=ImGui::GetFont();const auto* shape=icon_font->FindGlyph(static_cast<ImWchar>(glyph[0]));
     if(shape){
@@ -126,8 +131,8 @@ void preview(const Settings& settings,const Snapshot& snapshot,UiState& state,fl
     }
     if(ImGui::IsItemHovered())ImGui::SetTooltip("%s",avatar?"Account avatar image with illustrative ESP guides. The skeleton/box are approximate, not live joint positions.":"Live geometry fallback. Drag to rotate.");
     auto* draw=ImGui::GetWindowDrawList();draw->PushClipRect(at,{at.x+width,at.y+height},true);
-    draw->AddRectFilled(at,{at.x+width,at.y+height},tint({0.95f,0.95f,0.97f,1}),7*z);
-    for(float y=20*z;y<height;y+=24*z)draw->AddLine({at.x,at.y+y},{at.x+width,at.y+y},tint({0.89f,0.89f,0.93f,0.45f}));
+    draw->AddRectFilled(at,{at.x+width,at.y+height},style_tint(ImGuiCol_FrameBg),7*z);
+    for(float y=20*z;y<height;y+=24*z)draw->AddLine({at.x,at.y+y},{at.x+width,at.y+y},style_tint(ImGuiCol_Separator,0.45f));
     const auto model=local&&!avatar?build_character_preview(*local,{width,height},state.preview_yaw):std::nullopt;
     if(avatar){
         const float fit=std::min((width-16*z)/static_cast<float>(state.avatar_width),(height-16*z)/static_cast<float>(state.avatar_height));
@@ -140,7 +145,7 @@ void preview(const Settings& settings,const Snapshot& snapshot,UiState& state,fl
         const ImVec2 body_low{low.x+size.x*0.17f,low.y+size.y*0.07f},body_high{low.x+size.x*0.83f,low.y+size.y*0.96f};
         if(settings.boxes)draw->AddRect(body_low,body_high,accent);
         if(settings.health&&local->max_health>0){const float fraction=std::clamp(local->health/local->max_health,0.0f,1.0f);
-            draw->AddRectFilled({body_low.x-7*z,body_low.y},{body_low.x-4*z,body_high.y},tint({0.82f,0.82f,0.85f,1}));
+            draw->AddRectFilled({body_low.x-7*z,body_low.y},{body_low.x-4*z,body_high.y},style_tint(ImGuiCol_Border));
             draw->AddRectFilled({body_low.x-7*z,body_high.y-(body_high.y-body_low.y)*fraction},{body_low.x-4*z,body_high.y},tint({0.28f,0.64f,0.40f,1}));}
         if(settings.skeleton){
             const auto joint=[&](float x,float y){return ImVec2{low.x+size.x*x,low.y+size.y*y};};
@@ -167,7 +172,7 @@ void preview(const Settings& settings,const Snapshot& snapshot,UiState& state,fl
         const ImVec2 low{at.x+model->bounds.min.x,at.y+model->bounds.min.y},high{at.x+model->bounds.max.x,at.y+model->bounds.max.y};
         if(settings.boxes)draw->AddRect(low,high,accent);
         if(settings.health&&local->max_health>0){const float fraction=std::clamp(local->health/local->max_health,0.0f,1.0f);
-            draw->AddRectFilled({low.x-7*z,low.y},{low.x-4*z,high.y},tint({0.82f,0.82f,0.85f,1}));
+            draw->AddRectFilled({low.x-7*z,low.y},{low.x-4*z,high.y},style_tint(ImGuiCol_Border));
             draw->AddRectFilled({low.x-7*z,high.y-(high.y-low.y)*fraction},{low.x-4*z,high.y},tint({0.28f,0.64f,0.40f,1}));}
         const auto node=[&](const std::string& name)->const PreviewNode*{for(const auto& n:model->nodes)if(n.name==name)return &n;return nullptr;};
         if(settings.skeleton)for(const auto& [a,b]:skeleton_links(model->r15)){const auto* first=node(a);const auto* second=node(b);
@@ -205,31 +210,68 @@ void initialize_menu_fonts(float dpi_scale) {
     atlas->AddFontFromMemoryTTF(gilroyfont,static_cast<int>(sizeof(gilroyfont)),13*dpi_scale,&config,ranges);
     atlas->AddFontFromMemoryTTF(icon,static_cast<int>(sizeof(icon)),24*dpi_scale,&config,ranges);
 }
-void apply_theme() {
+void apply_theme(bool dark_mode) {
     auto& style=ImGui::GetStyle();style=ImGuiStyle{};
     style.WindowRounding=12;style.ChildRounding=0;style.FrameRounding=4;style.PopupRounding=4;
     style.WindowPadding={0,0};style.FramePadding={8,5};style.ItemSpacing={8,5};style.ItemInnerSpacing={5,5};
     style.WindowBorderSize=0;style.ChildBorderSize=0;style.ScrollbarSize=3;style.ScrollbarRounding=12;style.GrabRounding=4;
-    auto* c=style.Colors;c[ImGuiCol_Text]=ink;c[ImGuiCol_TextDisabled]=muted;
-    c[ImGuiCol_WindowBg]={235.0f/255,235.0f/255,240.0f/255,1};c[ImGuiCol_ChildBg]={0,0,0,0};
-    c[ImGuiCol_Border]={202.0f/255,202.0f/255,207.0f/255,1};c[ImGuiCol_FrameBg]={242.0f/255,242.0f/255,247.0f/255,1};
-    c[ImGuiCol_FrameBgHovered]={0.97f,0.97f,0.99f,1};c[ImGuiCol_FrameBgActive]={0.9f,0.9f,0.94f,1};
-    c[ImGuiCol_Button]={0.92f,0.92f,0.95f,1};c[ImGuiCol_ButtonHovered]={0.96f,0.96f,0.98f,1};c[ImGuiCol_ButtonActive]={0.84f,0.84f,0.89f,1};
+    auto* c=style.Colors;
+    if(dark_mode){
+        ink={235.0f/255,236.0f/255,244.0f/255,1};
+        muted={164.0f/255,166.0f/255,181.0f/255,1};
+        faint={126.0f/255,129.0f/255,147.0f/255,1};
+        c[ImGuiCol_WindowBg]={28.0f/255,29.0f/255,36.0f/255,1};
+        c[ImGuiCol_FrameBg]={39.0f/255,41.0f/255,51.0f/255,1};
+        c[ImGuiCol_FrameBgHovered]={49.0f/255,52.0f/255,64.0f/255,1};
+        c[ImGuiCol_FrameBgActive]={58.0f/255,61.0f/255,75.0f/255,1};
+        c[ImGuiCol_Button]={39.0f/255,41.0f/255,51.0f/255,1};
+        c[ImGuiCol_ButtonHovered]={51.0f/255,54.0f/255,67.0f/255,1};
+        c[ImGuiCol_ButtonActive]={64.0f/255,67.0f/255,82.0f/255,1};
+        c[ImGuiCol_Border]={76.0f/255,78.0f/255,92.0f/255,1};
+        c[ImGuiCol_Header]={48.0f/255,51.0f/255,63.0f/255,1};
+        c[ImGuiCol_HeaderHovered]={59.0f/255,62.0f/255,76.0f/255,1};
+        c[ImGuiCol_HeaderActive]={69.0f/255,72.0f/255,87.0f/255,1};
+        c[ImGuiCol_PopupBg]={34.0f/255,35.0f/255,44.0f/255,1};
+        c[ImGuiCol_ScrollbarGrab]={92.0f/255,95.0f/255,111.0f/255,1};
+        c[ImGuiCol_Separator]={65.0f/255,67.0f/255,80.0f/255,1};
+        c[ImGuiCol_SeparatorHovered]={99.0f/255,102.0f/255,121.0f/255,1};
+        c[ImGuiCol_SeparatorActive]={119.0f/255,122.0f/255,143.0f/255,1};
+    }else{
+        ink={50.0f/255,50.0f/255,55.0f/255,1};
+        muted={112.0f/255,112.0f/255,123.0f/255,1};
+        faint={146.0f/255,146.0f/255,157.0f/255,1};
+        c[ImGuiCol_WindowBg]={235.0f/255,235.0f/255,240.0f/255,1};
+        c[ImGuiCol_FrameBg]={242.0f/255,242.0f/255,247.0f/255,1};
+        c[ImGuiCol_FrameBgHovered]={0.97f,0.97f,0.99f,1};
+        c[ImGuiCol_FrameBgActive]={0.9f,0.9f,0.94f,1};
+        c[ImGuiCol_Button]={0.92f,0.92f,0.95f,1};
+        c[ImGuiCol_ButtonHovered]={0.96f,0.96f,0.98f,1};
+        c[ImGuiCol_ButtonActive]={0.84f,0.84f,0.89f,1};
+        c[ImGuiCol_Border]={202.0f/255,202.0f/255,207.0f/255,1};
+        c[ImGuiCol_Header]={0.87f,0.87f,0.91f,1};
+        c[ImGuiCol_HeaderHovered]={0.9f,0.9f,0.94f,1};
+        c[ImGuiCol_HeaderActive]={0.83f,0.83f,0.89f,1};
+        c[ImGuiCol_PopupBg]={0.94f,0.94f,0.97f,1};
+        c[ImGuiCol_ScrollbarGrab]={0.68f,0.68f,0.73f,1};
+        c[ImGuiCol_Separator]={220.0f/255,220.0f/255,230.0f/255,1};
+        c[ImGuiCol_SeparatorHovered]={195.0f/255,195.0f/255,205.0f/255,1};
+        c[ImGuiCol_SeparatorActive]={180.0f/255,180.0f/255,192.0f/255,1};
+    }
+    c[ImGuiCol_Text]=ink;c[ImGuiCol_TextDisabled]=muted;c[ImGuiCol_ChildBg]={0,0,0,0};
     c[ImGuiCol_CheckMark]=ink;c[ImGuiCol_SliderGrab]=ink;c[ImGuiCol_SliderGrabActive]=ink;
-    c[ImGuiCol_Header]={0.87f,0.87f,0.91f,1};c[ImGuiCol_HeaderHovered]={0.9f,0.9f,0.94f,1};c[ImGuiCol_HeaderActive]={0.83f,0.83f,0.89f,1};
-    c[ImGuiCol_PopupBg]={0.94f,0.94f,0.97f,1};c[ImGuiCol_ScrollbarBg]={0,0,0,0};c[ImGuiCol_ScrollbarGrab]={0.68f,0.68f,0.73f,1};
-    c[ImGuiCol_Separator]={220.0f/255,220.0f/255,230.0f/255,1};
+    c[ImGuiCol_ScrollbarBg]={0,0,0,0};
+    c[ImGuiCol_TextSelectedBg]={ink.x,ink.y,ink.z,0.25f};c[ImGuiCol_NavHighlight]=ink;
 }
 void draw_startup(const std::string& message,const std::string& version,bool busy,bool available,bool staged,bool failed,double elapsed) {
     const auto display=ImGui::GetIO().DisplaySize;const float z=scale();
     ImGui::SetNextWindowPos({0,0});ImGui::SetNextWindowSize(display);
     ImGui::Begin("NOCTRA startup",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoScrollbar);
     const auto origin=ImGui::GetWindowPos();auto* draw=ImGui::GetWindowDrawList();
-    draw->AddRectFilled(origin,{origin.x+display.x,origin.y+display.y},tint({235.0f/255,235.0f/255,240.0f/255,1}),12*z);
+    draw->AddRectFilled(origin,{origin.x+display.x,origin.y+display.y},style_tint(ImGuiCol_WindowBg),12*z);
     const ImVec2 card{std::min(480*z,display.x-48*z),std::min(220*z,display.y-48*z)};
     const ImVec2 low{origin.x+(display.x-card.x)/2,origin.y+(display.y-card.y)/2};
-    draw->AddRectFilled(low,{low.x+card.x,low.y+card.y},tint({248.0f/255,248.0f/255,251.0f/255,1}),10*z);
-    draw->AddRect(low,{low.x+card.x,low.y+card.y},tint({216.0f/255,216.0f/255,222.0f/255,1}),10*z,0,1.0f*z);
+    draw->AddRectFilled(low,{low.x+card.x,low.y+card.y},style_tint(ImGuiCol_FrameBg),10*z);
+    draw->AddRect(low,{low.x+card.x,low.y+card.y},style_tint(ImGuiCol_Border),10*z,0,1.0f*z);
     ImGui::SetCursorScreenPos({low.x+32*z,low.y+28*z});
     ImGui::PushFont(fonts().body);ImGui::TextColored(ink,"NOCTRA");ImGui::PopFont();
     ImGui::SetCursorScreenPos({low.x+32*z,low.y+76*z});
@@ -249,6 +291,12 @@ void draw_startup(const std::string& message,const std::string& version,bool bus
 }
 void draw_menu(Settings& s,const Snapshot& snap,UiState& state,double,double) {
     const float z=state.dpi_scale;const auto display=ImGui::GetIO().DisplaySize;
+    if(!state.theme_initialized||state.theme_dark_mode!=s.dark_mode){
+        apply_theme(s.dark_mode);
+        ImGui::GetStyle().ScaleAllSizes(z);
+        state.theme_initialized=true;
+        state.theme_dark_mode=s.dark_mode;
+    }
     constexpr int tab_count=5;
     const int section_counts[tab_count]={3,3,3,3,1};
     state.tab=std::clamp(state.tab,0,tab_count-1);
@@ -262,9 +310,9 @@ void draw_menu(Settings& s,const Snapshot& snap,UiState& state,double,double) {
     const float available=display.x-controls_x;
     const float controls_width=std::clamp(available*0.47f,280*z,365*z);
     const float preview_x=controls_x+controls_width;
-    draw->AddRectFilled(origin,{origin.x+display.x,origin.y+display.y},tint({235.0f/255,235.0f/255,240.0f/255,1}),12*z);
-    for(float x:{rail,controls_x,preview_x})draw->AddLine({origin.x+x,origin.y},{origin.x+x,origin.y+display.y-footer},tint({220.0f/255,220.0f/255,230.0f/255,1}));
-    draw->AddLine({origin.x,origin.y+display.y-footer},{origin.x+display.x,origin.y+display.y-footer},tint({220.0f/255,220.0f/255,230.0f/255,1}));
+    draw->AddRectFilled(origin,{origin.x+display.x,origin.y+display.y},style_tint(ImGuiCol_WindowBg),12*z);
+    for(float x:{rail,controls_x,preview_x})draw->AddLine({origin.x+x,origin.y},{origin.x+x,origin.y+display.y-footer},style_tint(ImGuiCol_Separator));
+    draw->AddLine({origin.x,origin.y+display.y-footer},{origin.x+display.x,origin.y+display.y-footer},style_tint(ImGuiCol_Separator));
     ImGui::SetCursorPos({17*z,9*z});ImGui::PushFont(fonts().icons);ImGui::TextColored(ink,"K");ImGui::PopFont();
     const char* tabs[]={"Aim","Visuals","Misc","Config","Cleaner"};const char* glyphs[]={"A","B","C","D","E"};
     for(int i=0;i<tab_count;++i){ImGui::SetCursorPos({9*z,(72+50.0f*static_cast<float>(i))*z});if(icon_tab(tabs[i],glyphs[i],tabs[i],state.tab==i,z))state.tab=i;}
@@ -308,7 +356,8 @@ void draw_menu(Settings& s,const Snapshot& snap,UiState& state,double,double) {
         if(section==0){row(state,"Show FOV circle",s.show_fov);row(state,"Watermark",s.watermark);
             if(ImGui::Button("Disarm modules",{-1,30*z})){s.aim=false;s.esp=false;state.notice="Live modules disarmed";}}
         if(section==1){slider(state,"Menu opacity",s.opacity,0.4f,1,"%.2f");const char* labels[]={"Insert","Home","Delete","F4"};
-            const int values[]={0x2D,0x24,0x2E,0x73};combo(state,"Menu key",s.menu_key,labels,values,4);}
+            const int values[]={0x2D,0x24,0x2E,0x73};combo(state,"Menu key",s.menu_key,labels,values,4);
+            row(state,"Dark mode",s.dark_mode,"Use a darker menu palette");}
         if(section==2){ImGui::Text("NOCTRA %s",app_version);if(!snap.build.empty())ImGui::TextWrapped("%s",snap.build.c_str());
             ImGui::Spacing();ImGui::TextUnformatted("Application updates");
             if(!state.update_message.empty())ImGui::TextWrapped("%s",state.update_message.c_str());

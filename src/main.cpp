@@ -284,7 +284,7 @@ int execute(HINSTANCE instance) {
         if(menu_open&&!IsIconic(menu.window)){RECT r{};GetClientRect(menu.window,&r);menu.resize(static_cast<UINT>(r.right),static_cast<UINT>(r.bottom));
             const UINT dpi=GetDpiForWindow(menu.window);
             if(dpi!=menu.dpi){menu.current();ImGui::GetIO().FontGlobalScale=static_cast<float>(dpi)/static_cast<float>(menu.dpi)*ImGui::GetIO().FontGlobalScale;
-                apply_theme();ImGui::GetStyle().ScaleAllSizes(static_cast<float>(dpi)/96.0f);menu.dpi=dpi;}
+                apply_theme(settings.dark_mode);ImGui::GetStyle().ScaleAllSizes(static_cast<float>(dpi)/96.0f);menu.dpi=dpi;}
             ui.dpi_scale=static_cast<float>(menu.dpi)/96.0f;
             update_avatar(last,now);
             const auto update=updates.status();ui.update_busy=update.busy;ui.update_available=update.available;ui.update_staged=update.staged;

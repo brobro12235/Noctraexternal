@@ -157,7 +157,8 @@ bool valid_settings(const Settings& s) {
         &&s.esp_show_distance_number>=false&&s.esp_show_distance_number<=true
         &&s.esp_team_color>=false&&s.esp_team_color<=true
         &&s.esp_outline_box>=false&&s.esp_outline_box<=true
-        &&s.esp_filled_box>=false&&s.esp_filled_box<=true;
+        &&s.esp_filled_box>=false&&s.esp_filled_box<=true
+        &&s.dark_mode>=false&&s.dark_mode<=true;
 }
 std::filesystem::path profile_directory() {
     wchar_t buffer[32768]{};
@@ -189,7 +190,12 @@ Settings load_profile(const std::filesystem::path& path) {
     }
     if(in.bad())throw std::runtime_error("Profile read failure");
     Settings s;
-    if(data.size()!=fields(s).size()||data["schema"]!="2")throw std::runtime_error("Unsupported or incomplete profile schema");
+    const auto schema=data.find("schema");
+    if(schema==data.end()||(schema->second!="2"&&schema->second!="3"))
+        throw std::runtime_error("Unsupported or incomplete profile schema");
+    const bool legacy_schema=schema->second=="2";
+    const auto expected_fields=fields(s).size()-(legacy_schema?1u:0u);
+    if(data.size()!=expected_fields)throw std::runtime_error("Unsupported or incomplete profile schema");
     const auto get=[&](const char* key,auto& value){
         auto it=data.find(key);if(it==data.end())throw std::runtime_error("Missing profile field");
         std::istringstream stream(it->second);stream>>value;
@@ -198,7 +204,8 @@ Settings load_profile(const std::filesystem::path& path) {
     };
 #define GET(field) get(#field,s.field)
     GET(aim);GET(esp);GET(boxes);GET(names);GET(health);GET(skeleton);GET(tracers);GET(distance_text);
-    GET(team_check);GET(show_fov);GET(watermark);GET(aim_key);GET(menu_key);GET(bone);GET(smoothing);
+    GET(team_check);GET(show_fov);GET(watermark);if(!legacy_schema)GET(dark_mode);
+    GET(aim_key);GET(menu_key);GET(bone);GET(smoothing);
     GET(fov_pixels);GET(max_distance);GET(opacity);GET(max_step);GET(mouse_gain);GET(deadzone);
     GET(prediction_time);GET(auto_shoot);GET(esp_show_health_number);GET(esp_show_distance_number);
     GET(esp_team_color);GET(esp_outline_box);GET(esp_filled_box);
@@ -242,11 +249,11 @@ void clean_roblox_data() {
     }
 }
 static std::map<std::string,std::string> fields(const Settings& s) {
-    std::map<std::string,std::string> m{{"schema","2"}};
+    std::map<std::string,std::string> m{{"schema","3"}};
     const auto put=[&](const char* key,auto value){std::ostringstream out;out<<std::setprecision(9)<<value;m[key]=out.str();};
 #define PUT(field) put(#field,s.field)
     PUT(aim);PUT(esp);PUT(boxes);PUT(names);PUT(health);PUT(skeleton);PUT(tracers);PUT(distance_text);
-    PUT(team_check);PUT(show_fov);PUT(watermark);PUT(aim_key);PUT(menu_key);PUT(bone);PUT(smoothing);
+    PUT(team_check);PUT(show_fov);PUT(watermark);PUT(dark_mode);PUT(aim_key);PUT(menu_key);PUT(bone);PUT(smoothing);
     PUT(fov_pixels);PUT(max_distance);PUT(opacity);PUT(max_step);PUT(mouse_gain);PUT(deadzone);
     PUT(prediction_time);PUT(auto_shoot);PUT(esp_show_health_number);PUT(esp_show_distance_number);
     PUT(esp_team_color);PUT(esp_outline_box);PUT(esp_filled_box);

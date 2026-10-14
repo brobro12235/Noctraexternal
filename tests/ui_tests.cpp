@@ -36,6 +36,13 @@ int main(){try{
     expect(ImGui::GetDrawData()->TotalVtxCount>500,"menu produces draw geometry");
     expect(f.state.preview_status=="Waiting for a fresh local character","empty preview honest waiting state");
     const auto background=ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);expect(background.x>0.9f&&background.y>0.9f,"enQ light palette");
+    f.settings.dark_mode=true;f.frame();f.frame();
+    const auto dark_background=ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+    expect(dark_background.x<0.2f&&dark_background.y<0.2f&&dark_background.z<0.25f,"dark palette applies");
+    f.settings.dark_mode=false;f.frame();f.frame();
+    expect(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg).x>0.9f,"light palette restores");
+    f.state.tab=2;f.state.sections[2]=1;f.frame();
+    expect(ImGui::GetDrawData()->TotalVtxCount>100,"interface page renders dark mode control");
     expect(f.window("/controls_")->Pos.x==210,"enQ control column");
     expect(f.window("/categories_")->Pos.x==50,"enQ category column");
     f.click(20,140);expect(f.state.tab==1,"visuals icon navigation");

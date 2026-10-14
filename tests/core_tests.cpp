@@ -138,8 +138,8 @@ void preview_tests(){
 void config_tests(){const auto folder=std::filesystem::temp_directory_path()/("noctra-tests-"+std::to_string(GetCurrentProcessId()));
     std::filesystem::create_directories(folder);const auto path=folder/"roundtrip.noctra";
     struct Cleanup{std::filesystem::path p;~Cleanup(){std::error_code ec;std::filesystem::remove_all(p,ec);}}cleanup{folder};
-    Settings c;c.aim=true;c.esp=true;c.skeleton=true;c.bone=2;c.menu_key=0x73;c.smoothing=23.125f;c.color={0.2f,0.5f,0.7f,0.8f};save_profile(path,c);
-    auto loaded=load_profile(path);expect(loaded.aim&&loaded.esp&&loaded.skeleton&&loaded.bone==2&&loaded.menu_key==0x73&&loaded.smoothing==c.smoothing&&loaded.color==c.color,"profile roundtrip");
+    Settings c;c.aim=true;c.esp=true;c.skeleton=true;c.dark_mode=true;c.bone=2;c.menu_key=0x73;c.smoothing=23.125f;c.color={0.2f,0.5f,0.7f,0.8f};save_profile(path,c);
+    auto loaded=load_profile(path);expect(loaded.aim&&loaded.esp&&loaded.skeleton&&loaded.dark_mode&&loaded.bone==2&&loaded.menu_key==0x73&&loaded.smoothing==c.smoothing&&loaded.color==c.color,"profile roundtrip");
     c.smoothing=std::numeric_limits<float>::quiet_NaN();rejects([&]{save_profile(path,c);},"NaN settings rejected");
     expect(load_profile(path).smoothing==23.125f,"invalid save preserves file");
     {std::ofstream out(path,std::ios::app);out<<"schema=2\n";}rejects([&]{load_profile(path);},"duplicate rejected");

@@ -21,7 +21,7 @@ bool valid_address(std::uintptr_t address, std::size_t bytes);
 std::optional<std::size_t> child_count(std::uintptr_t start, std::uintptr_t end);
 struct Settings {
     bool aim{}, esp{}, boxes{true}, names{true}, health{true}, skeleton{}, tracers{},
-         distance_text{true}, team_check{true}, show_fov{true}, watermark{true};
+         distance_text{true}, team_check{true}, show_fov{true}, watermark{true}, dark_mode{};
     int aim_key{2}, menu_key{0x2D}, bone{};
     float smoothing{68}, fov_pixels{140}, max_distance{1000}, opacity{0.98f},
           max_step{35}, mouse_gain{1}, deadzone{2};
