@@ -4,22 +4,37 @@ Noctra is a portable Windows x64 overlay for Roblox. It provides optional on-scr
 
 ## Run
 
-1. Download `Noctra.exe` from the [Releases](https://github.com/brobro12235/Noctraexternal/releases) page.
-2. Place it in a folder you can write to.
+1. Download the latest ZIP from the [Releases](https://github.com/brobro12235/Noctraexternal/releases) page.
+2. Extract the entire ZIP to a folder you can write to.
 3. Run `Noctra.exe`.
 4. Press **Insert** to show or hide the menu.
 5. Enable the features you want from the menu. Live features start disabled.
 
-No installation or administrator access is required.
+No installation or administrator access is required. Keep `Noctra.exe` and the included license files together.
 
 ## Requirements
 
 - 64-bit Windows 10 or Windows 11
 - DirectX 11-compatible graphics hardware and drivers
-- Internet access for optional avatar images and update checks
+- Internet access for optional avatar images and application updates
+
+## Build from source
+
+The complete C++ source, tests, embedded menu assets, and CMake configuration
+are included in this repository. Build with Visual Studio 2022:
+
+```powershell
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+
+The executable is written to `dist\Noctra.exe`. Profiles are saved from the
+**Config** menu, and **Misc > Interface > Dark mode** switches the menu palette.
+The setting is included in saved profiles.
 
 ## Notes
 
 - Profiles are saved from the **Config** menu.
-- Noctra checks for signed updates when it starts. If one is available, it downloads and installs it before launching. Keep the folder writable.
+- The application checks public GitHub Releases for signed updates when it starts.
 - Use the software only where permitted and follow the rules that apply to your account and game.
