@@ -16,10 +16,10 @@ No installation or administrator access is required.
 
 - 64-bit Windows 10 or Windows 11
 - DirectX 11-compatible graphics hardware and drivers
-- Internet access for optional avatar images
+- Internet access for optional avatar images and update checks
 
 ## Notes
 
 - Profiles are saved from the **Config** menu.
-- New versions are downloaded manually from the Releases page.
+- Noctra checks for signed updates when it starts. If one is available, it downloads and installs it before launching. Keep the folder writable.
 - Use the software only where permitted and follow the rules that apply to your account and game.
