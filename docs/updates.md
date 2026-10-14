@@ -10,7 +10,7 @@ Only the EXE is replaced remotely. Keep the bundled license notices; changes int
 
 ## Maintainer: publish a tested release
 
-The release utility is local-only; no upload/push/publish occurred in this task.
+The release utility is local-only; it creates and verifies signed assets, while GitHub release publication is performed separately.
 
 - The generated **public** verifier key is [config/update-public-key.txt](../config/update-public-key.txt). Commit/share this with source if desired; it contains no private key.
 - The private P-256 signing key is protected with Windows user DPAPI at `%LOCALAPPDATA%\NoctraPublisher\signing-key.dpapi`, outside the project/package. Do not upload it or put it in chat. Its current form is tied to this Windows user/profile; loss of that profile/key prevents signing releases trusted by existing copies. Make a secure backup/recovery plan before broad rollout. This is NOT a public certificate/Authenticode signing identity.
