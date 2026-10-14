@@ -23,6 +23,7 @@ struct UiState {
 };
 void initialize_menu_fonts(float dpi_scale);
 void apply_theme();
+void draw_startup(const std::string& message,const std::string& version,bool busy,bool available,bool staged,bool failed,double elapsed);
 void draw_menu(Settings&, const Snapshot&, UiState&, double fps, double uptime);
 void draw_overlay(const Settings&, const Snapshot&, Vec2 viewport, bool active, const std::optional<Target>&);
 void clean_roblox_data();

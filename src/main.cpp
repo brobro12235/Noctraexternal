@@ -164,6 +164,7 @@ int execute(HINSTANCE instance) {
         ui.avatar_failed=!avatar_error.empty();
     };
     const auto start=Clock::now();auto previous=start;auto cpu_start=cpu_time();
+    bool startup=!opt.smoke&&!opt.benchmark,startup_download_requested=false,startup_install_requested=false;
     std::vector<double> frames,reads;Snapshot last;std::size_t ready_frames{},input_events{};
     std::optional<Target> retained;Vec2 remainder{};bool was_active=false;RECT prior_area{};
     std::uint64_t aim_place{};std::uintptr_t aim_local_character{};
@@ -172,6 +173,23 @@ int execute(HINSTANCE instance) {
     while(running&&!ui.quit) {
         MSG message{};while(PeekMessageW(&message,nullptr,0,0,PM_REMOVE)){if(message.message==WM_QUIT)running=false;TranslateMessage(&message);DispatchMessageW(&message);}
         if(!running)break;
+        if(startup){
+            const auto startup_elapsed=std::chrono::duration<double>(Clock::now()-start).count();
+            const auto before=updates.status();
+            if(before.phase==UpdatePhase::available&&!startup_download_requested){startup_download_requested=true;updates.download();}
+            else if(before.phase==UpdatePhase::staged&&!startup_install_requested){
+                startup_install_requested=true;std::string error;
+                if(updates.install(error))return 0;
+            }
+            const auto status=updates.status();
+            if(status.phase==UpdatePhase::complete)startup=false;
+            else if(status.phase==UpdatePhase::failed&&startup_elapsed>=1.5)startup=false;
+            else if(startup_elapsed>=25.0)startup=false;
+            if(startup){
+                menu.frame();draw_startup(status.message,status.version,status.busy,status.available,status.staged,status.phase==UpdatePhase::failed,startup_elapsed);menu.present(1);
+                std::this_thread::sleep_for(std::chrono::milliseconds(16));continue;
+            }
+        }
         const auto now=Clock::now();const float dt=std::chrono::duration<float>(now-previous).count();previous=now;
         const double elapsed=std::chrono::duration<double>(now-start).count();
         if((opt.smoke||opt.benchmark)&&elapsed>opt.seconds)break;

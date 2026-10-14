@@ -9,6 +9,7 @@
 #include <thread>
 #include <vector>
 namespace noctra {
+enum class UpdatePhase { idle, checking, available, downloading, staged, complete, failed };
 struct UpdateManifest {
     std::uint64_t sequence{},size{},expires{};
     std::string version,url,sha256;
@@ -30,6 +31,7 @@ void acknowledge_update_health();
 struct UpdateStatus {
     bool busy{},available{},staged{};
     std::string message{"Checking for updates..."},version;
+    UpdatePhase phase{UpdatePhase::idle};
 };
 class UpdateService {
 public:

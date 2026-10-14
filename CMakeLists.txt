@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
-project(Noctra VERSION 1.2.0 LANGUAGES CXX)
-set(NOCTRA_UPDATE_SEQUENCE 3 CACHE STRING "Monotonically increasing published release sequence")
+project(Noctra VERSION 1.3.0 LANGUAGES CXX)
+set(NOCTRA_UPDATE_SEQUENCE 4 CACHE STRING "Monotonically increasing published release sequence")
 set(NOCTRA_UPDATE_REPOSITORY "brobro12235/Noctraexternal")
 set(NOCTRA_UPDATE_PUBLIC_KEY "")
 if(EXISTS "${CMAKE_SOURCE_DIR}/config/update-public-key.txt")

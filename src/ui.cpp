@@ -220,6 +220,33 @@ void apply_theme() {
     c[ImGuiCol_PopupBg]={0.94f,0.94f,0.97f,1};c[ImGuiCol_ScrollbarBg]={0,0,0,0};c[ImGuiCol_ScrollbarGrab]={0.68f,0.68f,0.73f,1};
     c[ImGuiCol_Separator]={220.0f/255,220.0f/255,230.0f/255,1};
 }
+void draw_startup(const std::string& message,const std::string& version,bool busy,bool available,bool staged,bool failed,double elapsed) {
+    const auto display=ImGui::GetIO().DisplaySize;const float z=scale();
+    ImGui::SetNextWindowPos({0,0});ImGui::SetNextWindowSize(display);
+    ImGui::Begin("NOCTRA startup",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoScrollbar);
+    const auto origin=ImGui::GetWindowPos();auto* draw=ImGui::GetWindowDrawList();
+    draw->AddRectFilled(origin,{origin.x+display.x,origin.y+display.y},tint({235.0f/255,235.0f/255,240.0f/255,1}),12*z);
+    const ImVec2 card{std::min(480*z,display.x-48*z),std::min(220*z,display.y-48*z)};
+    const ImVec2 low{origin.x+(display.x-card.x)/2,origin.y+(display.y-card.y)/2};
+    draw->AddRectFilled(low,{low.x+card.x,low.y+card.y},tint({248.0f/255,248.0f/255,251.0f/255,1}),10*z);
+    draw->AddRect(low,{low.x+card.x,low.y+card.y},tint({216.0f/255,216.0f/255,222.0f/255,1}),10*z,0,1.0f*z);
+    ImGui::SetCursorScreenPos({low.x+32*z,low.y+28*z});
+    ImGui::PushFont(fonts().body);ImGui::TextColored(ink,"NOCTRA");ImGui::PopFont();
+    ImGui::SetCursorScreenPos({low.x+32*z,low.y+76*z});
+    const char* headline=busy?(available?"Preparing update":"Checking for updates"):staged?"Installing update":failed?"Starting without update":"Starting";
+    ImGui::TextColored(ink,"%s",headline);
+    ImGui::SetCursorScreenPos({low.x+32*z,low.y+108*z});
+    std::string detail=message.empty()?"Please wait":message;
+    if(!version.empty()&&(available||staged))detail+="  v"+version;
+    ImGui::PushTextWrapPos(low.x+card.x-32*z);ImGui::TextColored(muted,"%s",detail.c_str());ImGui::PopTextWrapPos();
+    if(busy||available||staged){
+        const float width=card.x-64*z;const float progress=busy?0.35f+0.18f*static_cast<float>(0.5+0.5*std::sin(elapsed*4.0)):staged?0.92f:0.12f;
+        ImGui::SetCursorScreenPos({low.x+32*z,low.y+164*z});
+        draw->AddRectFilled({low.x+32*z,low.y+164*z},{low.x+32*z+width,low.y+170*z},tint({224.0f/255,224.0f/255,230.0f/255,1}),3*z);
+        draw->AddRectFilled({low.x+32*z,low.y+164*z},{low.x+32*z+width*progress,low.y+170*z},tint(ink),3*z);
+    }
+    ImGui::End();
+}
 void draw_menu(Settings& s,const Snapshot& snap,UiState& state,double,double) {
     const float z=state.dpi_scale;const auto display=ImGui::GetIO().DisplaySize;
     constexpr int tab_count=5;

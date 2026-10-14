@@ -49,7 +49,7 @@ HttpResult get(std::string url,std::size_t limit,std::stop_token stop){
         const std::wstring host(c.lpszHostName,c.dwHostNameLength);
         require(host==L"api.github.com"||host==L"github.com"||host==L"release-assets.githubusercontent.com"||host==L"objects.githubusercontent.com","Untrusted update redirect host");
         std::wstring path(c.lpszUrlPath,c.dwUrlPathLength);if(c.dwExtraInfoLength)path.append(c.lpszExtraInfo,c.dwExtraInfoLength);
-        Http session(WinHttpOpen(L"NoctraUpdater/1.1",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0));
+        Http session(WinHttpOpen(L"NoctraUpdater/1.3",WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0));
         require(WinHttpSetTimeouts(session.h,3000,5000,5000,5000)!=FALSE,"Update timeout setup failed");
         Http connection(WinHttpConnect(session.h,host.c_str(),443,0));
         Http request(WinHttpOpenRequest(connection.h,L"GET",path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,WINHTTP_FLAG_SECURE));
@@ -174,10 +174,10 @@ std::optional<int> run_update_helper(){
 void acknowledge_update_health(){const auto args=arguments();if(args.size()!=3||args[1]!=L"--update-health")return;
     const auto& token=args[2];if(token.size()!=32||!std::all_of(token.begin(),token.end(),[](wchar_t c){return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}))return;
     Handle event(OpenEventW(EVENT_MODIFY_STATE,FALSE,(L"Local\\NoctraUpdateHealth-"+token).c_str()));if(event.h)SetEvent(event.h);}
-UpdateService::UpdateService(bool enabled):worker_([this](std::stop_token stop){run(stop);}){if(enabled)check();else{std::lock_guard lock(mutex_);status_.message="Update checks disabled in test mode";}}
+UpdateService::UpdateService(bool enabled):worker_([this](std::stop_token stop){run(stop);}){if(enabled)check();else{std::lock_guard lock(mutex_);status_.message="Update checks disabled in test mode";status_.phase=UpdatePhase::complete;}}
 UpdateService::~UpdateService(){worker_.request_stop();wake_.notify_all();if(worker_.joinable())worker_.join();}
-void UpdateService::check(){std::lock_guard lock(mutex_);if(status_.busy)return;manifest_.reset();envelope_.clear();status_={true,false,false,"Checking for updates...",{}};action_=1;wake_.notify_all();}
-void UpdateService::download(){std::lock_guard lock(mutex_);if(status_.busy||!manifest_)return;status_.busy=true;status_.message="Downloading verified update...";action_=2;wake_.notify_all();}
+void UpdateService::check(){std::lock_guard lock(mutex_);if(status_.busy)return;manifest_.reset();envelope_.clear();status_={true,false,false,"Checking for updates...",{},UpdatePhase::checking};action_=1;wake_.notify_all();}
+void UpdateService::download(){std::lock_guard lock(mutex_);if(status_.busy||!manifest_)return;status_.busy=true;status_.message="Downloading verified update...";status_.phase=UpdatePhase::downloading;action_=2;wake_.notify_all();}
 UpdateStatus UpdateService::status()const{std::lock_guard lock(mutex_);return status_;}
 bool UpdateService::install(std::string& error){std::lock_guard lock(mutex_);if(!status_.staged||!manifest_){error="No verified update staged";return false;}
     try{const auto exe=update_executable_path();require(exe.filename()==L"Noctra.exe","Restore the EXE name to Noctra.exe before updating");
@@ -185,31 +185,31 @@ bool UpdateService::install(std::string& error){std::lock_guard lock(mutex_);if(
         const auto token=stage_.filename().wstring().substr(14);Handle ready(CreateEventW(nullptr,TRUE,FALSE,(L"Local\\NoctraUpdateReady-"+token).c_str()));
         require(ready.h&&GetLastError()!=ERROR_ALREADY_EXISTS,"Cannot create update handshake");
         Handle helper(spawn(stage_/L"Updater.exe",L"--apply-update "+std::to_wstring(GetCurrentProcessId())));
-        require(WaitForSingleObject(ready.h,5000)==WAIT_OBJECT_0,"Update helper not ready; app remains open");status_.staged=false;return true;
-    }catch(const std::exception& e){error=e.what();return false;}}
+        require(WaitForSingleObject(ready.h,5000)==WAIT_OBJECT_0,"Update helper not ready; app remains open");status_.staged=false;status_.phase=UpdatePhase::complete;return true;
+    }catch(const std::exception& e){error=e.what();status_.phase=UpdatePhase::failed;status_.message=error;return false;}}
 void UpdateService::run(std::stop_token stop){while(!stop.stop_requested()){
     int action{};{std::unique_lock lock(mutex_);wake_.wait(lock,stop,[&]{return action_!=0;});if(stop.stop_requested())return;action=action_;action_=0;}
     try{
         if(action==1){const auto response=get("https://api.github.com/repos/"+std::string(update_repository)+"/releases/latest",65536,stop);
             require(response.status==200||response.status==404,"GitHub update service unavailable or rate-limited");
-            if(response.status==404){std::lock_guard lock(mutex_);status_={false,false,false,"No public release available yet",{}};continue;}
+            if(response.status==404){std::lock_guard lock(mutex_);status_={false,false,false,"No public release available yet",{},UpdatePhase::complete};continue;}
             const auto json=nlohmann::json::parse(text(response.bytes));require(json.is_object()&&!json.at("draft").get<bool>()&&!json.at("prerelease").get<bool>()&&json.at("assets").is_array(),"Invalid GitHub release response");
             std::string url;for(const auto& asset:json.at("assets"))if(asset.at("name")=="update.json"){require(url.empty(),"Duplicate update manifest");url=asset.at("browser_download_url").get<std::string>();}
-            if(url.empty()){std::lock_guard lock(mutex_);status_={false,false,false,"Release has no signed update manifest",{}};continue;}
+            if(url.empty()){std::lock_guard lock(mutex_);status_={false,false,false,"Release has no signed update manifest",{},UpdatePhase::complete};continue;}
             require(release_url(url,"update.json"),"Unexpected update manifest host/path");const auto response_manifest=get(url,manifest_limit,stop);require(response_manifest.status==200,"Cannot download signed update manifest");
             auto envelope=text(response_manifest.bytes);
             // Authenticate before deciding whether the advertised sequence is newer.
             const auto candidate=verify_update_manifest(envelope,update_public_key,0,unix_now());
-            if(candidate.sequence<=update_sequence||candidate.sequence<highwater()){std::lock_guard lock(mutex_);status_={false,false,false,"No newer update available",{}};continue;}
-            auto m=verify_update_manifest(envelope,update_public_key,update_threshold(),unix_now());std::lock_guard lock(mutex_);envelope_=std::move(envelope);manifest_=m;status_={false,true,false,"Update available",m.version};
+            if(candidate.sequence<=update_sequence||candidate.sequence<highwater()){std::lock_guard lock(mutex_);status_={false,false,false,"No newer update available",{},UpdatePhase::complete};continue;}
+            auto m=verify_update_manifest(envelope,update_public_key,update_threshold(),unix_now());std::lock_guard lock(mutex_);envelope_=std::move(envelope);manifest_=m;status_={false,true,false,"Update available",m.version,UpdatePhase::available};
         }else{
             UpdateManifest m;std::string envelope;{std::lock_guard lock(mutex_);require(manifest_.has_value(),"No update selected");m=*manifest_;envelope=envelope_;}
             m=verify_update_manifest(envelope,update_public_key,update_threshold(),unix_now());const auto response=get(m.url,static_cast<std::size_t>(m.size),stop);require(response.status==200,"Update download failed");
             const auto stage=new_stage();write_file(stage/L"Noctra.pending.exe",response.bytes);verify_update_payload(stage/L"Noctra.pending.exe",m);
             write_file(stage/L"update.json",std::span<const unsigned char>(reinterpret_cast<const unsigned char*>(envelope.data()),envelope.size()));
             const auto exe=update_executable_path();regular_path(exe);require(CopyFileW(exe.c_str(),(stage/L"Updater.exe").c_str(),TRUE)!=FALSE,"Cannot stage update helper");
-            std::lock_guard lock(mutex_);stage_=stage;status_={false,true,true,"Verified update ready; restart requires approval",m.version};
+            std::lock_guard lock(mutex_);stage_=stage;status_={false,true,true,"Verified update ready; restart requires approval",m.version,UpdatePhase::staged};
         }
-    }catch(const std::exception& e){std::lock_guard lock(mutex_);status_.busy=false;status_.message=e.what();}
+    }catch(const std::exception& e){std::lock_guard lock(mutex_);status_.busy=false;status_.phase=UpdatePhase::failed;status_.message=e.what();}
 }}
 }

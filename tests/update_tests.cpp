@@ -29,17 +29,17 @@ int main(int argc,char** argv){try{
         expect(!status.busy,"real launch-time update discovery completes");std::cout<<"LIVE update discovery: "<<status.message<<'\n';return 0;
     }
     Signer signer;
-    nlohmann::json data={{"schema",1},{"product","Noctra"},{"arch","windows-x64"},{"sequence",3u},{"version","1.2.0"},{"url","https://github.com/brobro12235/Noctraexternal/releases/download/v1.2.0/Noctra.exe"},{"size",1024u},{"sha256",std::string(64,'a')},{"expires",2000001000u}};
-    auto envelope=signer.sign(data);const auto m=verify_update_manifest(envelope,signer.public_key,2,2000000000);
-    expect(m.sequence==3&&m.version=="1.2.0","signed valid release parsed");
-    rejects([&]{verify_update_manifest(envelope,signer.public_key,3,2000000000);},"same version rejected");
-    rejects([&]{verify_update_manifest(envelope,signer.public_key,4,2000000000);},"rollback rejected");
-    rejects([&]{verify_update_manifest(envelope,signer.public_key,2,2000001000);},"expired rejected");
-    auto modified=nlohmann::json::parse(envelope);modified["payload"]=data.dump()+" ";rejects([&]{verify_update_manifest(modified.dump(),signer.public_key,2,2000000000);},"tampered payload rejected");
-    modified=nlohmann::json::parse(envelope);modified["signature"]=std::string(128,'0');rejects([&]{verify_update_manifest(modified.dump(),signer.public_key,2,2000000000);},"forged signature rejected");
-    for(const auto* url:{"http://github.com/brobro12235/Noctraexternal/releases/download/v1/Noctra.exe","https://evil.test/Noctra.exe","https://github.com/other/repo/releases/download/v1/Noctra.exe","https://github.com/brobro12235/Noctraexternal/releases/download/../Noctra.exe?x","https://github.com/brobro12235/Noctraexternal/releases/download/v1/bad.exe"}){auto v=data;v["url"]=url;const auto signed_bad=signer.sign(v);rejects([&]{verify_update_manifest(signed_bad,signer.public_key,2,2000000000);},"bad update URL rejected");}
-    for(const auto* field:{"product","arch","version"}){auto v=data;v[field]="wrong";const auto signed_bad=signer.sign(v);rejects([&]{verify_update_manifest(signed_bad,signer.public_key,2,2000000000);},"bad signed metadata rejected");}
-    rejects([&]{verify_update_manifest(std::string(32769,' '),signer.public_key,2,2000000000);},"manifest bound enforced");
+    nlohmann::json data={{"schema",1},{"product","Noctra"},{"arch","windows-x64"},{"sequence",4u},{"version","1.3.0"},{"url","https://github.com/brobro12235/Noctraexternal/releases/download/v1.3.0/Noctra.exe"},{"size",1024u},{"sha256",std::string(64,'a')},{"expires",2000001000u}};
+    auto envelope=signer.sign(data);const auto m=verify_update_manifest(envelope,signer.public_key,3,2000000000);
+    expect(m.sequence==4&&m.version=="1.3.0","signed valid release parsed");
+    rejects([&]{verify_update_manifest(envelope,signer.public_key,4,2000000000);},"same version rejected");
+    rejects([&]{verify_update_manifest(envelope,signer.public_key,5,2000000000);},"rollback rejected");
+    rejects([&]{verify_update_manifest(envelope,signer.public_key,3,2000001000);},"expired rejected");
+    auto modified=nlohmann::json::parse(envelope);modified["payload"]=data.dump()+" ";rejects([&]{verify_update_manifest(modified.dump(),signer.public_key,3,2000000000);},"tampered payload rejected");
+    modified=nlohmann::json::parse(envelope);modified["signature"]=std::string(128,'0');rejects([&]{verify_update_manifest(modified.dump(),signer.public_key,3,2000000000);},"forged signature rejected");
+    for(const auto* url:{"http://github.com/brobro12235/Noctraexternal/releases/download/v1/Noctra.exe","https://evil.test/Noctra.exe","https://github.com/other/repo/releases/download/v1/Noctra.exe","https://github.com/brobro12235/Noctraexternal/releases/download/../Noctra.exe?x","https://github.com/brobro12235/Noctraexternal/releases/download/v1/bad.exe"}){auto v=data;v["url"]=url;const auto signed_bad=signer.sign(v);rejects([&]{verify_update_manifest(signed_bad,signer.public_key,3,2000000000);},"bad update URL rejected");}
+    for(const auto* field:{"product","arch","version"}){auto v=data;v[field]="wrong";const auto signed_bad=signer.sign(v);rejects([&]{verify_update_manifest(signed_bad,signer.public_key,3,2000000000);},"bad signed metadata rejected");}
+    rejects([&]{verify_update_manifest(std::string(32769,' '),signer.public_key,3,2000000000);},"manifest bound enforced");
     const auto root=std::filesystem::temp_directory_path()/("noctra-update-tests-"+std::to_string(GetCurrentProcessId()));expect(std::filesystem::create_directory(root),"isolated update fixtures");
     struct Cleanup{std::filesystem::path path;~Cleanup(){std::error_code error;std::filesystem::remove_all(path,error);}}cleanup{root};
     const auto target=root/L"Noctra.exe",pending=root/L"Noctra.pending.exe",backup=root/L"Noctra.previous.exe",rejected=root/L"Noctra.rejected.exe";
