@@ -1,8 +1,0 @@
-#pragma once
-#include <cstdint>
-namespace noctra {
-inline constexpr char app_version[]="@PROJECT_VERSION@";
-inline constexpr std::uint64_t update_sequence=@NOCTRA_UPDATE_SEQUENCE@;
-inline constexpr char update_repository[]="@NOCTRA_UPDATE_REPOSITORY@";
-inline constexpr char update_public_key[]="@NOCTRA_UPDATE_PUBLIC_KEY@";
-}

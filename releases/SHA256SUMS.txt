@@ -1,6 +1,0 @@
-4050aa80580dcf9f1d8f91cf114fc465676b178f5c6684c3a053de00e2231f82  dist/Noctra.exe
-686584671c6d9cdef1a31598d9e80c3805e7f20bdddb7a78d1b7c9c3ea0bfc92  releases/Noctra-1.0.0-windows-x64.zip
-ad30ad489e5019561dfddd9237bb8194ffdbb895c716c0ca8d30e6b92fb4cd68  releases/Noctra-1.1.0-windows-x64.zip
-259ac1dfddf5c9ae6bbacc62f353b5dfd2b756210c46a5f14d1191758648f571  releases/Noctra-1.2.0-windows-x64.zip
-d6ee71353c8d6be00f07b57c19e9591b8bc745c6198f8bcf7b66d0fa06684970  releases/update-v1.2.0.json
-d6ee71353c8d6be00f07b57c19e9591b8bc745c6198f8bcf7b66d0fa06684970  releases/update.json
