@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+remote="origin"
+branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+
+if [ -z "$branch" ]; then
+    printf '%s\n' "Automatic GitHub sync skipped: HEAD is detached." >&2
+    exit 0
+fi
+
+if ! git remote get-url "$remote" >/dev/null 2>&1; then
+    printf '%s\n' "Automatic GitHub sync skipped: remote 'origin' is not configured." >&2
+    exit 0
+fi
+
+printf 'Uploading commit to %s/%s...\n' "$remote" "$branch"
+if ! git push "$remote" "$branch"; then
+    printf '%s\n' "Automatic GitHub sync failed. The commit remains local and can be pushed manually." >&2
+    exit 1
+fi
